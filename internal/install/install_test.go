@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -233,7 +234,7 @@ func TestRunCreatesConfigOnce(t *testing.T) {
 		t.Fatalf("token len = %d", len(c.Terminal.Token))
 	}
 	info, _ := os.Stat(env.ConfigPath)
-	if info.Mode().Perm() != 0o600 {
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Fatalf("mode = %o", info.Mode().Perm())
 	}
 }

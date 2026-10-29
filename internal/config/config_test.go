@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -123,6 +124,9 @@ func TestNormalize(t *testing.T) {
 }
 
 func TestSaveIsAtomicAndPrivate(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("file modes not enforced on Windows")
+	}
 	dir := t.TempDir()
 	p := filepath.Join(dir, "rc.yaml")
 
@@ -197,6 +201,9 @@ func TestSaveFailureLeavesExistingFileUntouched(t *testing.T) {
 }
 
 func TestSaveRejectsUnwritableDirectory(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("directory permissions not enforced on Windows")
+	}
 	if os.Geteuid() == 0 {
 		t.Skip("root ignores directory permissions")
 	}

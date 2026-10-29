@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"os/exec"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -68,6 +69,9 @@ func (f *fakeRunner) Run(_ context.Context, _ string, _ ...string) ([]byte, []by
 }
 
 func TestIsElevatedLinux(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("linux-only")
+	}
 	cases := []struct {
 		name string
 		out  string

@@ -9,8 +9,8 @@
 //	[v]MAJOR.MINOR.PATCH[-PRERELEASE][+BUILD]
 //
 // A leading "v" is accepted so tags such as "v1.4.2" parse directly. Build
-// metadata after "+" is validated only for position: it is ignored, so
-// "1.4.2+build.5" and "1.4.2" yield the same Version.
+// metadata after the plus sign is validated only for position: it is ignored,
+// so a suffixed and an unsuffixed version yield the same Version.
 package semver
 
 import (
