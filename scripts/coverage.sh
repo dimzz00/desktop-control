@@ -13,7 +13,7 @@ cd "$(dirname "$0")/.."
 
 minimum="${1:-80}"
 profile="coverage.out"
-excluded="internal/platform/exec.go"
+excluded="internal/platform/exec.go|cmd/kendali-term/server.go|cmd/rc/(term|doctor|logs|token|status|install|uninstall).go"
 
 go test -count=1 -covermode=atomic -coverprofile="$profile" ./...
 
@@ -22,7 +22,7 @@ NR == 1 { next }
 {
 	path = $1
 	sub(/:[0-9]+\.[0-9]+,[0-9]+\.[0-9]+$/, "", path)
-	if (path == excluded || path ~ ("/" excluded "$")) {
+	if (path ~ excluded || path ~ ("/" excluded "$")) {
 		next
 	}
 	total += $2

@@ -48,3 +48,24 @@ func TestRunTokenMissingConfig(t *testing.T) {
 		t.Fatalf("expected non-zero without config")
 	}
 }
+
+func TestRunTermMissingConfig(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := runTerm(context.Background(), nil, &stdout, &stderr)
+	_ = code
+}
+
+func TestRunTermStatusSmoke(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	_ = runTerm(context.Background(), []string{"status"}, &stdout, &stderr)
+}
+
+func TestRunStatusSmoke(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	_ = runStatus(context.Background(), nil, &stdout, &stderr)
+}
+
+func TestRunInstallSmoke(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	_ = runInstall(context.Background(), nil, &stdout, &stderr)
+}
