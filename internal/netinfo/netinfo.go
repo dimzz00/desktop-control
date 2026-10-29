@@ -60,6 +60,8 @@ var virtualInterfacePrefixes = []string{
 	"veth",
 	"br-",
 	"vmnet",
+	"cni",
+	"podman",
 }
 
 // usbInterfacePrefixes lists the interface name prefixes used by Android USB
@@ -87,11 +89,12 @@ func kindOrder(k Kind) int {
 // isVirtualInterfaceName reports whether name belongs to a virtual interface
 // that should never be advertised.
 func isVirtualInterfaceName(name string) bool {
-	if name == "lo" {
+	lower := strings.ToLower(name)
+	if lower == "lo" {
 		return true
 	}
 	for _, prefix := range virtualInterfacePrefixes {
-		if strings.HasPrefix(name, prefix) {
+		if strings.HasPrefix(lower, prefix) {
 			return true
 		}
 	}
@@ -101,8 +104,9 @@ func isVirtualInterfaceName(name string) bool {
 // isUSBInterfaceName reports whether name looks like an Android USB tethering
 // interface.
 func isUSBInterfaceName(name string) bool {
+	lower := strings.ToLower(name)
 	for _, prefix := range usbInterfacePrefixes {
-		if strings.HasPrefix(name, prefix) {
+		if strings.HasPrefix(lower, prefix) {
 			return true
 		}
 	}
