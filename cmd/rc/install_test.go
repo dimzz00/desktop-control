@@ -30,3 +30,21 @@ func TestRunUninstall(t *testing.T) {
 	}
 	_ = filepath.Base
 }
+
+func TestRunDoctorSmoke(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	_ = runDoctor(context.Background(), nil, &stdout, &stderr)
+}
+
+func TestRunLogsSmoke(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	_ = runLogs(context.Background(), nil, &stdout, &stderr)
+}
+
+func TestRunTokenMissingConfig(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := runToken(context.Background(), nil, &stdout, &stderr)
+	if code == 0 {
+		t.Fatalf("expected non-zero without config")
+	}
+}

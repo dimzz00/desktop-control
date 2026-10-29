@@ -21,6 +21,9 @@ commands:
   version     print the kendali version
   status      print connection status
   id          print the RustDesk device id
+  doctor      diagnose the installation
+  logs        show RustDesk logs
+  token       print or rotate the terminal token
   install     install kendali (RustDesk + rc)
   uninstall   remove kendali
 `
@@ -52,6 +55,12 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		}
 		_, _ = fmt.Fprintln(stdout, id)
 		return 0
+	case "doctor":
+		return runDoctor(ctx, args[1:], stdout, stderr)
+	case "logs":
+		return runLogs(ctx, args[1:], stdout, stderr)
+	case "token":
+		return runToken(ctx, args[1:], stdout, stderr)
 	case "install":
 		return runInstall(ctx, args[1:], stdout, stderr)
 	case "uninstall":

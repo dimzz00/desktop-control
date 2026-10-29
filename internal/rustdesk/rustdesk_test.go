@@ -5,6 +5,7 @@ package rustdesk
 import (
 	"context"
 	"errors"
+	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -53,6 +54,11 @@ func TestDetectMissingBinary(t *testing.T) {
 	s, err := Manager{Run: f, GOOS: "linux"}.Detect(context.Background())
 	if err != nil || s.Installed {
 		t.Fatalf("got %+v %v, want installed=false err=nil", s, err)
+	}
+	f2 := &fakeRunner{err: os.ErrNotExist}
+	s2, err2 := Manager{Run: f2, GOOS: "linux"}.Detect(context.Background())
+	if err2 != nil || s2.Installed {
+		t.Fatalf("got %+v %v", s2, err2)
 	}
 }
 
@@ -136,6 +142,17 @@ func TestInstallPackagePerOS(t *testing.T) {
 	}
 	if !containsCall(fw.calls, "msiexec /i a.msi /qn /norestart") {
 		t.Fatalf("windows calls = %v", fw.calls)
+	}
+}
+
+func TestDetectWindows(t *testing.T) {
+	f := &fakeRunner{out: map[string][]byte{
+		"rustdesk.exe --version": []byte("rustdesk 1.4.2\n"),
+		"sc query RustDesk":      []byte("STATE: 4 RUNNING\n"),
+	}}
+	s, err := Manager{Run: f, GOOS: "windows"}.Detect(context.Background())
+	if err != nil || !s.Installed || !s.ServiceActive {
+		t.Fatalf("got %+v %v", s, err)
 	}
 }
 
