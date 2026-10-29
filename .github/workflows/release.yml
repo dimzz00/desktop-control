@@ -1,0 +1,42 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            goos: linux
+            goarch: amd64
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27'
+          cache: true
+      - run: make verify
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          mkdir -p dist
+          go build -ldflags "-X github.com/dimzz00/kendali/internal/versioncmd.BuildVersion=${GITHUB_REF_NAME#v}" -o dist/rc ./cmd/rc
+      - name: Package
+        run: |
+          cd dist && sha256sum rc* > sha256.txt
+      - name: Upload
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*

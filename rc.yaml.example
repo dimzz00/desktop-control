@@ -1,0 +1,10 @@
+config_version: 1
+device:
+  alias: kendali
+  rustdesk_version: 1.4.2
+  password: ""
+terminal:
+  bind: localhost
+  port: 47654
+  token: ""
+  idle_timeout: 30m

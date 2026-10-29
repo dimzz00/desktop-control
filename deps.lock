@@ -1,0 +1,3 @@
+# kendali dependency lock file
+rustdesk 1.4.2 https://github.com/rustdesk/rustdesk/releases/download/1.4.2/rustdesk-1.4.2-x86_64.deb e5b8a1bb3ea697716263c9309c79db667aedb3e024400dc3d07f5aaa0edfb907
+go 1.27.3 https://go.dev/dl/go1.27.3.linux-amd64.tar.gz 65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40
