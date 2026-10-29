@@ -1,0 +1,12 @@
+[Unit]
+Description=kendali terminal sidecar
+After=network.target
+
+[Service]
+Type=simple
+User=%i
+ExecStart=/opt/kendali/current/kendali-term serve --config /etc/kendali/rc.yaml
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

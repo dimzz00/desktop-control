@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>kendali terminal</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+</head>
+<body style="margin:0;background:#000">
+<div id="term" style="width:100vw;height:100vh"></div>
+<script>
+const term = new Terminal();
+const fit = new FitAddon.FitAddon();
+term.loadAddon(fit);
+term.open(document.getElementById('term'));
+fit.fit();
+const ws = new WebSocket('ws://' + location.host + '/ws' + location.search);
+ws.onmessage = (e) => term.write(e.data);
+term.onData((d) => ws.send(d));
+term.onResize(({cols,rows}) => ws.send(JSON.stringify({type:'resize',cols,rows})));
+window.addEventListener('resize', () => fit.fit());
+</script>
+</body>
+</html>
