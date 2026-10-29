@@ -5,3 +5,8 @@ dist/
 coverage.out
 rc.yaml
 .worktrees/
+
+# local tooling and agent state (never committed)
+.codegraph/
+.superpowers/
+bin/tools/

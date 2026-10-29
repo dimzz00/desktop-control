@@ -1,0 +1,12 @@
+#!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Keep the local CodeGraph index in sync when the tool is available. The hook
+# is a convenience only: commits must not depend on CodeGraph being installed.
+set -eu
+
+if command -v codegraph >/dev/null 2>&1; then
+	codegraph sync -q
+else
+	echo "pre-commit: codegraph not found, skipping index sync" >&2
+fi
