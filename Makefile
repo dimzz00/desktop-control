@@ -17,6 +17,10 @@ GOLANGCI_LINT_VERSION ?= v2.15.0
 
 build:
 	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o bin/rc ./cmd/rc
+	$(GO) build -trimpath -ldflags "-X github.com/dimzz00/kendali/internal/terminal.BuildVersion=$(VERSION)" -o bin/kendali-term ./cmd/kendali-term
+
+build-term:
+	$(GO) build -trimpath -ldflags "-X github.com/dimzz00/kendali/internal/terminal.BuildVersion=$(VERSION)" -o bin/kendali-term ./cmd/kendali-term
 
 test:
 	$(GO) test -race -count=1 ./...
