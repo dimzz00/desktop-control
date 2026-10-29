@@ -167,6 +167,20 @@ tests/                     # integrasi + fixture
 | Log | `/var/log/kendali/` | `%ProgramData%\kendali\logs\` |
 | Autostart | systemd `kendali-term.service` + service RustDesk | Windows service RustDesk + `kendali-term` |
 
+`kendali-term` berjalan sebagai **pengguna yang login**, bukan root/SYSTEM: shell yang
+diberikan adalah milik pengguna tersebut (tanda owner mengikuti pengguna yang memasang).
+RustDesk tetap berjalan sebagai service sistem agar layar dapat diakses tanpa login.
+
+### 8.6 Interaksi dengan RustDesk yang sudah terpasang
+
+- Installer mendeteksi RustDesk yang ada. Versi cocok → dipakai, tidak ditimpa.
+  Versi berbeda → berhenti dengan pesan jelas; `rc install --adopt-existing` menerima versi
+  lain dan mencatatnya di `rc.yaml`.
+- Hanya komponen yang dipasang oleh kendali yang ditandai (`meta/installed-by-kendali`)
+  dan boleh dihapus saat uninstall.
+- `rc upgrade` **tidak** menyentuh RustDesk. `deps.lock` mengunci versi yang dipasang;
+  `rc doctor` melaporkan drift, termasuk drift akibat auto-update upstream.
+
 ## 9. Keputusan yang sudah diambil
 
 | Keputusan | Alasan |
@@ -178,6 +192,14 @@ tests/                     # integrasi + fixture
 | Terminal hanya lewat tunnel (default) | Permukaan serang minimal |
 | UI terminal berbasis web | Satu implementasi melayani Android + Linux + Windows |
 | Nama kerja `kendali` | Netral, mudah diganti |
+| Terminal sebagai pengguna login, bukan root | Shell tetap bisa `sudo`; mengurangi dampak bila token bocor |
+| RustDesk di luar mesin upgrade kita | Paket resmi punya service dan jalur pasang sendiri; tidak bisa ditukar seperti binary kita |
+| Hanya koneksi IP langsung (tanpa rendezvous publik) | Sesuai premis data tidak lewat server pihak lain |
+| Upgrade berjalan terlepas dari sesi (`rc upgrade --status`) | Restart memutus koneksi yang dipakai memantau upgrade |
+| Token dibuat saat instalasi, disimpan 0600, bisa dirotasi | Sederhana; pemulihan butuh akses layar host |
+| RustDesk lama diadopsi, tidak ditimpa | Menghindari merusak instalasi yang sudah berfungsi |
+| Tanda tangan rilis opsional; checksum + HTTPS untuk sekarang | Menambah rantai kunci belum sepadan untuk pemakaian pribadi |
+| Hosting: GitHub publik (Releases + Actions) | CI gratis, `install.sh` dapat mengambil artefak langsung dari Release |
 
 ## 10. Versioning
 
@@ -198,8 +220,10 @@ Empat jenis versi, dipisahkan tegas.
 
 - Format per baris: `nama versi url sha256`.
 - Mengunci RustDesk, versi Go untuk build, dan Tailscale minimum.
-- Diverifikasi saat instalasi dan saat upgrade; tidak cocok = batal tanpa menyentuh
-  instalasi berjalan.
+- Diverifikasi saat instalasi dan saat `rc upgrade` (untuk komponen yang kita pasang);
+  tidak cocok = batal tanpa menyentuh instalasi berjalan.
+- `deps.lock` adalah **bukan** alat upgrade RustDesk: ia menetapkan versi yang dipasang dan
+  menjadi pembanding bagi `rc doctor` untuk melaporkan drift.
 - Job CI mingguan mengunduh ulang semua URL dan membandingkan checksum untuk mendeteksi
   rilis ulang diam-diam oleh upstream.
 
@@ -217,6 +241,12 @@ Empat jenis versi, dipisahkan tegas.
 - Pemasangan versioned: `releases/<ver>/` + penunjuk `current`. Linux memakai symlink;
   Windows mengarahkan ulang `binPath` service lewat `sc config`.
 - Dua versi terakhir disimpan.
+- **Distribusi:** repositori publik di GitHub. Artefak dipublikasikan sebagai GitHub
+  Release oleh GitHub Actions saat tag `vX.Y.Z` dibuat. `install.sh`/`install.ps1` menerima
+  tiga sumber: URL Release (default), berkas tarball lokal (`--archive`), atau mirror.
+  Instalasi tanpa jaringan selalu mungkin lewat `--archive`.
+- **Bootstrap:** `install.sh` mengunduh tarball yang berisi `rc` + `kendali-term`, jadi
+  `rc` belum diperlukan sebelum instalasi.
 - **Upgrade atomik:** unduh ke direktori sementara → verifikasi checksum → tukar penunjuk
   → restart → pemeriksaan kesehatan 30 detik (service hidup, port mendengarkan, versi
   menjawab). Gagal → rollback otomatis + laporan.
@@ -235,7 +265,7 @@ Prinsip: setiap perilaku punya tes; setiap jalur gagal diuji; rilis diblokir bil
 - Sanitasi alias; parsing alamat/IP; deteksi alamat tailnet (di balik interface).
 - Logika PTY di balik interface agar dapat dites dengan PTY palsu.
 
-### 11.2 Integrasi (container Ubuntu 22.04; runner Windows terpisah)
+### 11.2 Integrasi (GitHub Actions: `ubuntu-22.04` + container systemd; `windows-latest`)
 
 - Instalasi dua kali → snapshot filesystem+service harus identik (idempotensi).
 - install → uninstall → install bersih.
@@ -266,9 +296,10 @@ transfer file; terminal lewat tunnel. Hasil dicatat sebelum tag.
 
 ### 11.6 Uji kegagalan wajib
 
-Tidak ada jaringan saat install · checksum tidak cocok · unduhan terputus · disk penuh ·
-dijalankan bukan root · versi lama terpasang · `config_version` dari masa depan ·
-Tailscale tidak ada/belum login · dua upgrade bersamaan · konfigurasi rusak/terpotong.
+Tidak ada jaringan saat install · instalasi dari tarball lokal (`--archive`) · checksum tidak
+cocok · unduhan terputus · disk penuh · dijalankan bukan root · versi lama terpasang ·
+`config_version` dari masa depan · Tailscale tidak ada/belum login · dua upgrade bersamaan ·
+konfigurasi rusak/terpotong · RustDesk pra-terpasang dengan versi berbeda.
 
 ### 11.7 Gerbang statis dan kualitas
 
@@ -301,34 +332,69 @@ upgrade→rollback diuji, dan `CHANGELOG.md` diperbarui.
 ## 13. Keamanan
 
 - RustDesk: password permanen per device, dibuat installer dan ditampilkan `rc status`;
-  akses lewat tailnet dibatasi ACL Tailscale.
+  akses lewat tailnet dibatasi ACL Tailscale. Rendezvous publik tidak dipakai.
 - Terminal: token 32 byte, constant-time, rate limit, idle timeout, bind localhost default.
+  Proses berjalan sebagai pengguna login, sehingga dampak kebocoran token bukan root.
+- **Siklus token:** dibuat saat instalasi, disimpan di `rc.yaml` mode 0600, ditampilkan
+  `rc token`, diganti `rc token --rotate`. Pemulihan token memerlukan akses ke layar host
+  (disengaja); tidak ada jalur pemulihan jarak jauh.
+- **Risiko sisa:** rilis diautentikasi checksum + HTTPS, belum ditandatangani. Bila
+  ancaman yang dihadapi mencakup kompromi akun GitHub, tanda tangan kunci (minisign)
+  ditambahkan sebelum 1.0.0.
 - Relay (nanti): kunci `hbbs`/`hbbr` disimpan di `.env` yang tidak di-commit.
 - Log tidak memuat token, password, atau isi sesi terminal.
 - `rc doctor --bundle` mengumpulkan diagnostik dengan redaksi untuk laporan bug.
 
 ## 14. Tahapan
 
-1. **0.1.0** — kerangka repo, `VERSION`/`deps.lock`, `rc` (up/status/doctor/logs), installer
-   Linux+Windows, RustDesk terkunci, panduan koneksi LAN/USB/Tailscale. Keluaran: layar dan
-   input berfungsi dari Android ke host Linux dan Windows.
-2. **0.2.0** — `kendali-term` + integrasi tunnel + auth, UI web terminal.
-3. **0.3.0** — CI lengkap, uji upgrade/rollback, dokumentasi dan runbook, `rc doctor --bundle`.
-4. **Nanti** — relay sendiri (gratis tier VPS), launcher bermerek, akun/izin untuk
-   membantu device orang lain.
+Setiap milestone punya definisi selesai sendiri; kriteria di §15 dirujuk menurut nomornya.
 
-## 15. Kriteria penerimaan Tahap 1
+1. **0.1.0 — fondasi dan koneksi layar.** Kerangka repo, `VERSION`/`deps.lock`, `rc`
+   (`status`, `doctor`, `logs`, `id`, `token`), installer Linux+Windows (termasuk adopsi
+   RustDesk yang ada), RustDesk terkunci versi, panduan LAN/USB/Tailscale.
+   Selesai bila kriteria 1–4 lulus. **Belum ada** upgrade/rollback dan belum ada terminal.
+2. **0.2.0 — terminal.** `kendali-term`, integrasi tunnel, auth dan UI web; opsi
+   `bind: tailnet` sebagai cadangan. Selesai bila kriteria 5 lulus.
+3. **0.3.0 — operasional.** Mesin upgrade/rollback + `rc upgrade --status`, health check
+   dengan rollback otomatis, CI penuh, `rc doctor --bundle`, seluruh runbook.
+   Selesai bila kriteria 6–9 lulus.
+4. **Nanti** — relay sendiri (VPS gratis), launcher bermerek, akun/izin untuk membantu
+   device orang lain.
 
+### 14.1 Risiko yang harus diverifikasi sebelum 0.2.0 (spike)
+
+- **Tunnel di client Android.** Desain terminal bergantung pada kemampuan aplikasi RustDesk
+  Android membuka port lokal dari TCP tunneling untuk browser. Verifikasi pada versi yang
+  dikunci. Bila tidak tersedia → pakai `bind: tailnet` bertoken (sudah ada di desain); bila
+  itu pun tidak memadai → terminal pindah ke transport sendiri di atas tailnet.
+- **Auto-update RustDesk.** Bila auto-update tidak dapat dimatikan tanpa patch, versi host
+  hanya dapat dipantau (bukan dipaksa). `rc doctor` melaporkan drift dan dokumen
+  kompatibilitas client mencatat versi yang diuji.
+- **Wayland.** Keterbatasan tangkap layar/injeksi input didokumentasikan per desktop.
+
+## 15. Kriteria penerimaan
+
+Dikelompokkan per milestone agar tidak ada kriteria yang bergantung pada fitur yang belum ada.
+
+**0.1.0**
 1. Instalasi satu perintah berhasil di Linux (Pop!\_OS 22.04) dan Windows 10/11.
-2. Menjalankan installer dua kali tidak mengubah keadaan.
-3. `rc status` mencetak alamat LAN, USB, tailnet, dan token terminal.
+2. Menjalankan installer dua kali tidak mengubah keadaan; uninstall bersih.
+3. `rc status` mencetak alamat LAN, USB, dan tailnet yang terdeteksi (atau "tidak
+   terhubung"); `rc doctor` mendiagnosis Tailscale mati dan service mati.
 4. Android dapat melihat layar dan mengendalikan input lewat LAN, USB (tethering), dan
-   Tailscale.
-5. `rc upgrade` lalu `rc rollback` berhasil tanpa merusak konfigurasi; kegagalan kesehatan
-   memicu rollback otomatis.
-6. `rc doctor` mendiagnosis dengan benar: Tailscale mati, service mati, checksum salah.
-7. Seluruh tes CI hijau, coverage ≥80% pada paket logika.
-8. `codegraph status` bersih setelah pekerjaan selesai.
+   Tailscale, dari host Linux maupun Windows.
+
+**0.2.0**
+5. Terminal terbuka dari browser Android/Linux/Windows lewat tunnel; token salah, percobaan
+   berlebih, dan idle ditolak sesuai §11.3.
+
+**0.3.0**
+6. `rc upgrade` lalu `rc rollback` berhasil tanpa merusak konfigurasi; kegagalan kesehatan
+   memicu rollback otomatis; upgrade bertahan saat sesi pemantau terputus.
+7. `rc doctor` mendeteksi checksum salah, drift versi RustDesk, dan skema konfigurasi dari
+   masa depan dengan pesan yang dapat ditindaklanjuti.
+8. Seluruh tes CI hijau, coverage ≥80% pada paket logika.
+9. `codegraph status` bersih setelah pekerjaan selesai.
 
 ## 16. Yang diserahkan ke builder
 
@@ -336,4 +402,6 @@ upgrade→rollback diuji, dan `CHANGELOG.md` diperbarui.
 - Pemilihan pustaka PTY/ConPTY dan pustaka web terminal.
 - Nama port default dan struktur internal paket Go selama tetap sesuai §8.4.
 - Cara memasang hook `pre-commit` di mesin pengembang.
+- Penamaan artefak GitHub Release dan cara menjalankan tes Windows tanpa mengganggu mesin
+  pengguna.
 - Bahasa dokumentasi (disarankan Indonesia, istilah teknis tetap Inggris).
