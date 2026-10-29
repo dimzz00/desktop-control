@@ -4,3 +4,4 @@ dist/
 *_test-results.xml
 coverage.out
 rc.yaml
+.worktrees/
