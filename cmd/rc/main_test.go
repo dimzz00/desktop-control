@@ -4,6 +4,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"strings"
 	"testing"
 
@@ -16,7 +17,7 @@ func TestRunVersion(t *testing.T) {
 	versioncmd.BuildVersion = "0.1.0"
 
 	var stdout, stderr bytes.Buffer
-	if code := run([]string{"version"}, &stdout, &stderr); code != 0 {
+	if code := run(context.Background(), []string{"version"}, &stdout, &stderr); code != 0 {
 		t.Fatalf("exit = %d, stderr = %q", code, stderr.String())
 	}
 	if got, want := stdout.String(), "kendali 0.1.0\n"; got != want {
@@ -29,7 +30,7 @@ func TestRunVersion(t *testing.T) {
 
 func TestRunNoArgsShowsUsage(t *testing.T) {
 	var stdout, stderr bytes.Buffer
-	if code := run(nil, &stdout, &stderr); code != 2 {
+	if code := run(context.Background(), nil, &stdout, &stderr); code != 2 {
 		t.Fatalf("exit = %d, want 2", code)
 	}
 	if !strings.Contains(stderr.String(), "usage: rc") {
@@ -39,7 +40,7 @@ func TestRunNoArgsShowsUsage(t *testing.T) {
 
 func TestRunUnknownCommand(t *testing.T) {
 	var stdout, stderr bytes.Buffer
-	if code := run([]string{"bogus"}, &stdout, &stderr); code != 2 {
+	if code := run(context.Background(), []string{"bogus"}, &stdout, &stderr); code != 2 {
 		t.Fatalf("exit = %d, want 2", code)
 	}
 	if !strings.Contains(stderr.String(), `unknown command "bogus"`) {
