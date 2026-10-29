@@ -363,10 +363,10 @@ Setiap milestone punya definisi selesai sendiri; kriteria di §15 dirujuk menuru
 
 ### 14.1 Risiko yang harus diverifikasi sebelum 0.2.0 (spike)
 
-- **Tunnel di client Android.** Desain terminal bergantung pada kemampuan aplikasi RustDesk
-  Android membuka port lokal dari TCP tunneling untuk browser. Verifikasi pada versi yang
-  dikunci. Bila tidak tersedia → pakai `bind: tailnet` bertoken (sudah ada di desain); bila
-  itu pun tidak memadai → terminal pindah ke transport sendiri di atas tailnet.
+- **Tunnel di client Android.** *Hasil spike: tidak tersedia* — aplikasi RustDesk Android
+  tidak mengekspos UI pembuka tunnel; `enable-tunnel` hanya izin sisi yang dikontrol (host).
+  Maka 0.2.0 menggunakan `bind: tailnet` bertoken sebagai jalur utama (port 47654, bind ke
+  alamat tailnet host). Transport sendiri di atas tailnet disiapkan sebagai cadangan.
 - **Auto-update RustDesk.** Bila auto-update tidak dapat dimatikan tanpa patch, versi host
   hanya dapat dipantau (bukan dipaksa). `rc doctor` melaporkan drift dan dokumen
   kompatibilitas client mencatat versi yang diuji.
