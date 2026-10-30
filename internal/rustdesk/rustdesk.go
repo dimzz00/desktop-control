@@ -97,6 +97,10 @@ func (m Manager) SupportsPasswordFlag(ctx context.Context) (bool, error) {
 	return strings.Contains(combined, "--password"), nil
 }
 
+// ErrPasswordUnsupported is returned when the installed RustDesk does not accept
+// the --password flag, so the password must be set manually in the UI.
+var ErrPasswordUnsupported = errors.New("rustdesk: --password flag not supported")
+
 // SetPassword sets the RustDesk permanent password when the flag is supported.
 func (m Manager) SetPassword(ctx context.Context, pw string) error {
 	ok, err := m.SupportsPasswordFlag(ctx)
@@ -104,8 +108,7 @@ func (m Manager) SetPassword(ctx context.Context, pw string) error {
 		return err
 	}
 	if !ok {
-		return fmt.Errorf("rustdesk: --password flag is not supported by this version; " +
-			"set the password manually in the RustDesk UI (Settings -> Security) and re-run `rc install`")
+		return fmt.Errorf("%w: set the password manually in the RustDesk UI (Settings -> Security)", ErrPasswordUnsupported)
 	}
 	_, _, err = m.Run.Run(ctx, m.binary(), "--password", pw)
 	if err != nil {
