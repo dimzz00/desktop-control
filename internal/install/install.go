@@ -193,16 +193,23 @@ func Run(ctx context.Context, env Env, opts Options) (Result, error) {
 			return res, fmt.Errorf("install: generate password: %w", err)
 		}
 		if err := env.RS.SetPassword(ctx, pw); err != nil {
-			return res, err
+			if errors.Is(err, rustdesk.ErrPasswordUnsupported) {
+				res.Actions = append(res.Actions, "rustdesk password must be set manually (UI)")
+			} else {
+				return res, err
+			}
+		} else {
+			cfg.Device.Password = pw
+			changed = true
+			res.Actions = append(res.Actions, "set rustdesk password")
 		}
-		cfg.Device.Password = pw
-		changed = true
-		res.Actions = append(res.Actions, "set rustdesk password")
 	}
 
-	// Enable direct IP (best-effort-ish but spec says return error on failure).
+	// Enable direct IP; on failure (e.g. unsupported flag) warn and continue.
 	if err := env.RS.EnableDirectIP(ctx); err != nil {
-		return res, err
+		res.Actions = append(res.Actions, "direct IP must be enabled manually (UI)")
+	} else {
+		res.Actions = append(res.Actions, "enabled direct IP")
 	}
 
 	// Finalise config.
